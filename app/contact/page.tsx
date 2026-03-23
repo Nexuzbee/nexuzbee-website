@@ -61,8 +61,9 @@ export default function ContactPage() {
             <div className="surface p-5">
               <p className="text-sm font-semibold text-ink">Submission handling</p>
               <p className="mt-2 text-sm">
-                Form submissions are stored in the site database through the backend. For a private
-                admin view, configure <code>ADMIN_DASHBOARD_TOKEN</code> in your environment file.
+                Form submissions are stored in a Postgres database through the backend. For a
+                private admin view, configure <code>ADMIN_DASHBOARD_TOKEN</code> in your
+                environment file.
               </p>
             </div>
           </div>

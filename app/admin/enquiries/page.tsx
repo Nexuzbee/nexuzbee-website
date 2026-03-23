@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { SectionHeading } from "@/components/section-heading";
-import { getDb } from "@/lib/db";
+import { ensureSchema, getPool } from "@/lib/db";
 import type { EnquiryRecord } from "@/lib/enquiries";
 
 export const dynamic = "force-dynamic";
@@ -12,15 +12,18 @@ type AdminPageProps = {
 };
 
 async function getEnquiries() {
-  const db = await getDb();
+  await ensureSchema();
+  const pool = getPool();
 
-  return db.all<EnquiryRecord[]>(
+  const result = await pool.query<EnquiryRecord>(
     `
       SELECT id, name, email, phone, company, service, message, created_at
       FROM enquiries
-      ORDER BY datetime(created_at) DESC
+      ORDER BY created_at DESC
     `
   );
+
+  return result.rows;
 }
 
 export default async function AdminEnquiriesPage({ searchParams }: AdminPageProps) {
@@ -38,7 +41,7 @@ export default async function AdminEnquiriesPage({ searchParams }: AdminPageProp
       <SectionHeading
         eyebrow="Admin"
         title="Enquiries dashboard"
-        description="Private view of contact submissions stored in the local SQLite database."
+        description="Private view of contact submissions stored in the Postgres database."
       />
 
       <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -62,7 +65,7 @@ export default async function AdminEnquiriesPage({ searchParams }: AdminPageProp
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-700">
             Storage
           </p>
-          <p className="mt-4 text-sm text-slate-600">SQLite database stored locally for now.</p>
+          <p className="mt-4 text-sm text-slate-600">Postgres-backed storage for Vercel deployment.</p>
         </article>
       </div>
 

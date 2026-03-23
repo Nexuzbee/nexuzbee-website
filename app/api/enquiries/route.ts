@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { ensureSchema, getPool } from "@/lib/db";
 import { enquirySchema, type EnquiryRecord } from "@/lib/enquiries";
 
 export const runtime = "nodejs";
@@ -20,25 +20,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = await getDb();
+    await ensureSchema();
+    const pool = getPool();
     const { name, email, phone, company, service, message } = parsed.data;
 
-    const result = await db.run(
+    const result = await pool.query<{ id: number }>(
       `
         INSERT INTO enquiries (name, email, phone, company, service, message)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
       `,
-      name,
-      email,
-      phone || "",
-      company || "",
-      service,
-      message
+      [name, email, phone || "", company || "", service, message]
     );
 
     return NextResponse.json({
       success: true,
-      id: result.lastID
+      id: result.rows[0]?.id
     });
   } catch {
     return NextResponse.json(
@@ -63,14 +60,15 @@ export async function GET(request: Request) {
     );
   }
 
-  const db = await getDb();
-  const enquiries = await db.all<EnquiryRecord[]>(
+  await ensureSchema();
+  const pool = getPool();
+  const enquiries = await pool.query<EnquiryRecord>(
     `
       SELECT id, name, email, phone, company, service, message, created_at
       FROM enquiries
-      ORDER BY datetime(created_at) DESC
+      ORDER BY created_at DESC
     `
   );
 
-  return NextResponse.json({ success: true, enquiries });
+  return NextResponse.json({ success: true, enquiries: enquiries.rows });
 }

@@ -1,46 +1,51 @@
-import fs from "node:fs";
-import path from "node:path";
-import sqlite3 from "sqlite3";
-import { open, type Database } from "sqlite";
-
-const dataDirectory = path.join(process.cwd(), "data");
-const databasePath = path.join(dataDirectory, "nexuzbee.db");
+import { Pool } from "pg";
 
 declare global {
   // eslint-disable-next-line no-var
-  var __nexuzbeeDb: Promise<Database<sqlite3.Database, sqlite3.Statement>> | undefined;
+  var __nexuzbeePool: Pool | undefined;
+  // eslint-disable-next-line no-var
+  var __nexuzbeeSchemaReady: Promise<void> | undefined;
 }
 
-async function initialiseDatabase() {
-  fs.mkdirSync(dataDirectory, { recursive: true });
+function createPool() {
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
-  const db = await open({
-    filename: databasePath,
-    driver: sqlite3.Database
-  });
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS enquiries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT,
-      company TEXT,
-      service TEXT NOT NULL,
-      message TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  return db;
-}
-
-export function getDb() {
-  if (!global.__nexuzbeeDb) {
-    global.__nexuzbeeDb = initialiseDatabase();
+  if (!connectionString) {
+    throw new Error("Missing POSTGRES_URL or DATABASE_URL environment variable.");
   }
 
-  return global.__nexuzbeeDb;
+  return new Pool({
+    connectionString
+  });
 }
 
-export { databasePath };
+export function getPool() {
+  if (!global.__nexuzbeePool) {
+    global.__nexuzbeePool = createPool();
+  }
+
+  return global.__nexuzbeePool;
+}
+
+export async function ensureSchema() {
+  if (!global.__nexuzbeeSchemaReady) {
+    const pool = getPool();
+
+    global.__nexuzbeeSchemaReady = pool
+      .query(`
+        CREATE TABLE IF NOT EXISTS enquiries (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          phone TEXT,
+          company TEXT,
+          service TEXT NOT NULL,
+          message TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `)
+      .then(() => undefined);
+  }
+
+  return global.__nexuzbeeSchemaReady;
+}
