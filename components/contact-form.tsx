@@ -71,7 +71,7 @@ export function ContactForm() {
             onChange={handleChange}
             required
           />
-          <Field label="Phone" name="phone" value={formState.phone} onChange={handleChange} />
+          <Field label="Phone" name="phone" value={formState.phone ?? ""} onChange={handleChange} />
           <Field
             label="Company / Organisation"
             name="company"
@@ -84,7 +84,7 @@ export function ContactForm() {
           Service interested in
           <select
             name="service"
-            value={formState.service}
+            value={formState.service ?? ""}
             onChange={handleChange}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
           >
@@ -98,7 +98,7 @@ export function ContactForm() {
           Message
           <textarea
             name="message"
-            value={formState.message}
+            value={formState.message ?? ""}
             onChange={handleChange}
             rows={6}
             required
