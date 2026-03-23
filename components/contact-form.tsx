@@ -75,7 +75,7 @@ export function ContactForm() {
           <Field
             label="Company / Organisation"
             name="company"
-            value={formState.company}
+            value={formState.company ?? ""}
             onChange={handleChange}
           />
         </div>
